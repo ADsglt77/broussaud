@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@shopify/shopify-api": "^10.0.0"
+  }
+}

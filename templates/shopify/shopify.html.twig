@@ -1,0 +1,160 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}ShopifyController!{% endblock %}
+
+{% block body %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: bbox;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+        background-color: #f4f4f9;
+        color: #333;
+    }
+
+    h1 {
+        text-align: center;
+        margin: 50px;
+        color: #333;
+    }
+
+    .container {
+        display: grid;
+        grid-template-columns: repeat(max-content, auto);
+        grid-template-rows: auto;
+        gap: 20px;
+        padding: 20px;
+    }
+
+    .box {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: min-content;
+        gap: 20px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .box h2 {
+        margin-bottom: 15px;
+        font-size: 18px;
+        color: #555;
+        grid-column: 1 / 4;
+    }
+
+    .box span {
+        font-weight: 600;
+    
+    }
+</style>
+
+<h1>Liste des Commandes</h1>
+<div class="container">
+    {% if listeCommandes.errors is defined %}
+        <p class="no-data">Error: {{ listeCommandes.errors[0].message }}</p>
+    {% else %}
+        {% for edge in listeCommandes.data.orders.edges %}
+            <div class="box">
+                <h2>Commande ID : {{ edge.node.id }} </h2> 
+                <div class="content">
+                    <h3>Info de la commande : </h3><br>
+                    <p><span>Date de création:</span> {{ edge.node.createdAt|date("d/m/Y H:i:s") }}</p>
+                    <p><span>Email:</span> {{ edge.node.email }}</p>
+                    <p><span>Nom de la commande:</span> {{ edge.node.name }}</p>
+                    <p><span>Status financier:</span> {{ edge.node.displayFinancialStatus }}</p>
+                    <p><span>Status de fulfillment:</span> {{ edge.node.displayFulfillmentStatus }}</p>
+                    <p><span>Mode de paiement:</span>
+                        {% for gateway in edge.node.paymentGatewayNames %}
+                            {{ gateway }}
+                        {% endfor %}
+                    </p>
+                    <p><span>Prix total:</span> {{ edge.node.currentTotalPriceSet.shopMoney.amount }} {{ edge.node.currentTotalPriceSet.shopMoney.currencyCode }}</p>
+                    <p><span>Prix (sans taxes):</span> {{ edge.node.subtotalPriceSet.shopMoney.amount }} {{ edge.node.currentTotalPriceSet.shopMoney.currencyCode }}</p>
+                    <p><span>Taxes:</span> {{ edge.node.currentTotalTaxSet.shopMoney.amount }} {{ edge.node.currentTotalPriceSet.shopMoney.currencyCode }}</p>
+                    <p><span>Remise:</span> 
+                        {% if edge.node.cartDiscountAmountSet == null %}
+                            Aucune remise n'a été appliquée
+                        {% else %}
+                            {{ edge.node.discountCode }} : {{ edge.node.cartDiscountAmountSet.presentmentMoney.amount }} {{ edge.node.currentTotalPriceSet.shopMoney.currencyCode }}
+                        {% endif %}
+                    </p>
+                    <p><span>Raison de l'annulation:</span> 
+                        {% if edge.node.cancelReason == null %}
+                            Commande non annulée
+                        {% else %}
+                            {{ edge.node.cancelReason }}
+                        {% endif %}
+                    </p>
+                    <p><span>Note:</span> 
+                        {% if edge.node.note == null %}
+                            Aucune note
+                        {% else %}
+                            {{ edge.node.note }}
+                        {% endif %}
+                    </p>
+                    <p><span>Tags:</span> 
+                        {% if edge.node.tags is empty %}
+                            Aucun tag
+                        {% else %}
+                            {% for tag in edge.node.tags %}
+                                    # {{ tag }}
+                            {% endfor %}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="address-details">
+                    <h3>Info client : </h3><br>
+                    <p><span>Prénom et Nom:</span> {{ edge.node.customer.displayName }}</p>
+                    <p><span>Email:</span> {{ edge.node.customer.email }}</p>
+                    <p><span>Téléphone:</span> {{ edge.node.customer.phone }}</p>
+                    <br><br>
+                    <h3>Info Livraison client : </h3><br>
+                    {% for infos in edge.node.shippingLines.edges %}
+                        <p><span>ID:</span> {{ infos.node.id }}</p>
+                        <p><span>Titre:</span> {{ infos.node.title }}</p>
+                        <p><span>Prix remisé:</span> {{ infos.node.discountedPriceSet.shopMoney.amount }} {{ edge.node.currentTotalPriceSet.shopMoney.currencyCode }}</p>
+                        <p><span>Taxes:</span> {% for taxLine in infos.node.taxLines %} {{ taxLine.ratePercentage }}%{% endfor %}</p>
+                    {% endfor %}
+                    <p><span>Pays:</span> {{ edge.node.billingAddress.country }}</p>
+                    <p><span>Ville:</span> {{ edge.node.billingAddress.city }}</p>
+                    <p><span>Adresse :</span> {{ edge.node.billingAddress.address1 }}</p>
+                    <p><span>Code postal:</span> {{ edge.node.billingAddress.zip }}</p>
+                    <p><span>Téléphone:</span> {{ edge.node.billingAddress.phone }}</p>
+                </div>
+                <div class="product-details">
+                    <h3>Info produit(s) : </h3><br>
+                    {% for produit in edge.node.lineItems.edges %}
+                        <p><span>ID:</span> {{ produit.node.id }}</p>
+                        <p><span>Nom:</span> {{ produit.node.title }}</p>
+                        <p><span>Quantité:</span> {{ produit.node.quantity }}</p>
+                        <p><span>Prix unitaire:</span> {{ produit.node.originalUnitPriceSet.shopMoney.amount }} {{ edge.node.currentTotalPriceSet.shopMoney.currencyCode }}</p>
+                        <p><span>N° Code Barre:</span> {{ produit.node.sku }}</p>
+                        <p><span>Variant:</span> {{ produit.node.variant.id }}</p>
+                        <p><span>Taxe :</span>
+                        {% if edge.node.tags is empty %}
+                            Aucune taxe pour cette article
+                        {% else %}
+                            {% for taxLine in produit.node.taxLines %}
+                                {{ taxLine.ratePercentage }}%
+                            {% endfor %}
+                        {% endif %}
+                        </p>
+                        
+                        {# <p><span>Image:</span> <img src="{{ produit.node.image.originalSrc }}"></img></p> #}
+                        <br>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
